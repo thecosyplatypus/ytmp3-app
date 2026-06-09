@@ -1,0 +1,67 @@
+# YTMP3 Downloader
+
+A desktop application for downloading YouTube videos and playlists as MP3 files. Built with Python, PyQt6, and yt-dlp.
+
+## Features
+
+- Download single YouTube videos or full playlists as MP3
+- Dark-themed desktop UI (PyQt6)
+- Selectable MP3 quality (128, 192, 256, 320 kbps)
+- Drag-and-drop URL support
+- Download queue with progress tracking
+- Auto-detects playlists and expands individual tracks
+- Configurable output directory
+- FFmpeg auto-install if missing
+
+## Requirements
+
+- Python 3.8+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (auto-installed below)
+- [PyQt6](https://pypi.org/project/PyQt6/) (auto-installed below)
+- FFmpeg (auto-downloaded from within the app, or install manually)
+
+## Installation
+
+```bash
+# 1. Install Python dependencies
+pip install yt-dlp PyQt6 mutagen
+
+# 2. Clone or download this repo, then run:
+cd ytmp3-app
+py main.py
+```
+
+Or double-click `run.bat` on Windows.
+
+## Usage
+
+1. **Launch the app** — a dark-themed window opens
+
+2. **Paste a URL** — paste a YouTube video or playlist link into the input field, then click **Add**
+   - Supports `youtube.com`, `youtu.be`, `music.youtube.com`
+   - Playlists are auto-detected and expanded
+
+3. **Select quality** — choose MP3 bitrate: 128, 192, 256, or 320 kbps
+
+4. **Choose output folder** — click **Browse...** to change where MP3s are saved (defaults to `~/Music/YTMP3 Downloads`)
+
+5. **Download All** — starts processing the queue. Each track shows:
+   - Download progress (%)
+   - Conversion status ("Converting to MP3...")
+   - Green highlight on completion, red on error
+
+6. **Stop** — pauses the current queue (resume with **Download All**)
+
+7. **FFmpeg** — if missing, click the "FFmpeg: not found" label at the top to auto-download it
+
+## Project Structure
+
+```
+ytmp3-app/
+├── main.py           # Application entry point & UI
+├── worker.py         # Download queue & yt-dlp integration
+├── ffmpeg_helper.py  # FFmpeg detection & download
+├── run.bat           # Windows launcher
+├── config.json       # Saved settings (auto-generated)
+└── README.md
+```
