@@ -26,6 +26,7 @@ def load_config():
     default = {
         "output_dir": os.path.join(os.path.expanduser("~"), "Music", "YTMP3 Downloads"),
         "quality": "192",
+        "format": "mp3",
         "window_geometry": None,
     }
     if os.path.isfile(CONFIG_FILE):
@@ -241,7 +242,7 @@ class DownloadRow(QFrame):
             "pending": "Waiting...",
             "analyzing": "Analyzing...",
             "downloading": f"Downloading... {item.progress:.0f}%",
-            "converting": "Converting to MP3...",
+            "converting": f"Converting to {item.format.upper()}...",
             "done": "Completed",
             "error": f"Error: {item.error}",
         }
@@ -281,7 +282,7 @@ class MainWindow(QMainWindow):
         self._setup_drag_drop()
 
     def _init_ui(self):
-        self.setWindowTitle("YTMP3 Downloader")
+        self.setWindowTitle("YT Downloader (MP3 / MP4)")
         self.setMinimumSize(750, 500)
 
         if self.config.get("window_geometry"):
@@ -307,7 +308,7 @@ class MainWindow(QMainWindow):
         tl.setContentsMargins(0, 0, 0, 0)
         tl.setSpacing(8)
 
-        title = QLabel("YTMP3 Downloader")
+        title = QLabel("YT Downloader (MP3 / MP4)")
         title.setStyleSheet("color: #ffffff; font-size: 15px; font-weight: 600; background: transparent;")
         tl.addWidget(title)
         tl.addStretch()
@@ -358,6 +359,29 @@ class MainWindow(QMainWindow):
         qidx = ["128", "192", "256", "320"].index(self.config.get("quality", "192"))
         self._quality_combo.setCurrentIndex(qidx)
         q_layout.addWidget(self._quality_combo)
+
+        q_layout.addSpacing(16)
+        q_layout.addWidget(QLabel("Format:"))
+
+        self._format_combo = QComboBox()
+        self._format_combo.addItem("MP3 (Audio)", "mp3")
+        self._format_combo.addItem("MP4 (Video)", "mp4")
+        self._format_combo.setCurrentIndex(0 if self.config.get("format", "mp3") == "mp3" else 1)
+        q_layout.addWidget(self._format_combo)
+
+        q_layout.addSpacing(16)
+        q_layout.addWidget(QLabel("Cookies:"))
+
+        self._cookies_combo = QComboBox()
+        self._cookies_combo.addItem("None", None)
+        for browser in ("chrome", "edge", "firefox", "brave", "opera", "vivaldi"):
+            self._cookies_combo.addItem(browser.title(), browser)
+        saved_browser = self.config.get("cookies_from_browser")
+        if saved_browser:
+            idx = self._cookies_combo.findData(saved_browser)
+            if idx >= 0:
+                self._cookies_combo.setCurrentIndex(idx)
+        q_layout.addWidget(self._cookies_combo)
 
         q_layout.addSpacing(16)
         q_layout.addWidget(QLabel("Save to:"))
@@ -491,6 +515,8 @@ class MainWindow(QMainWindow):
         self._stop_btn.setEnabled(True)
         quality = self._quality_combo.currentText().split()[0]
         self._worker.quality = quality
+        self._worker.format = self._format_combo.currentData()
+        self._worker.cookies_from_browser = self._cookies_combo.currentData()
         self._worker._paused = False
         pending = sum(
             1 for item in self._list_widget._items.values()
@@ -538,6 +564,8 @@ class MainWindow(QMainWindow):
         self._worker.stop()
         self.config["window_geometry"] = list(self.saveGeometry())
         self.config["quality"] = self._quality_combo.currentText().split()[0]
+        self.config["format"] = self._format_combo.currentData()
+        self.config["cookies_from_browser"] = self._cookies_combo.currentData()
         save_config(self.config)
         self._thread.quit()
         self._thread.wait(2000)

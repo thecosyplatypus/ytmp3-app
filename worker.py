@@ -19,6 +19,7 @@ class DownloadItem:
         self.progress = progress
         self.error = ""
         self.filepath = ""
+        self.format = "mp3"
 
 
 class DownloadSignals(QObject):
@@ -41,6 +42,8 @@ class DownloadWorker(QObject):
         self._lock = threading.Lock()
         self.output_dir = os.path.join(os.path.expanduser("~"), "Music", "YTMP3 Downloads")
         self.quality = "192"
+        self.format = "mp3"
+        self.cookies_from_browser = None
         self.ffmpeg_dir = None
         self._paused = True
         self._thread = None
@@ -102,16 +105,16 @@ class DownloadWorker(QObject):
                     item.status = "analyzing"
 
             self.signals.status_message.emit(f"Analyzing: {url[:80]}...")
-            info = self._analyze_url(url)
+            info, analyze_error = self._analyze_url(url)
 
             if not info:
                 with self._lock:
                     item = self._items.get(url)
                     if item:
                         item.status = "error"
-                        item.error = "Could not analyze URL"
+                        item.error = analyze_error or "Could not analyze URL"
                         self.signals.item_updated.emit(item)
-                self.signals.status_message.emit("Failed to analyze URL")
+                self.signals.status_message.emit(f"Failed to analyze URL: {analyze_error or 'unknown error'}")
                 continue
 
             if info.get("playlist_count", 0) > 1:
@@ -161,8 +164,7 @@ class DownloadWorker(QObject):
 
     def _analyze_url(self, url):
         if not yt_dlp:
-            self.signals.status_message.emit("yt-dlp not installed. Run: pip install yt-dlp")
-            return None
+            return None, "yt-dlp not installed. Run: pip install yt-dlp"
         try:
             opts = {
                 "quiet": True,
@@ -170,27 +172,43 @@ class DownloadWorker(QObject):
                 "extract_flat": "in_playlist",
                 "skip_download": True,
             }
+            if self.cookies_from_browser:
+                opts["cookiesfrombrowser"] = (self.cookies_from_browser,)
             with yt_dlp.YoutubeDL(opts) as ydl:
-                return ydl.extract_info(url, download=False)
+                return ydl.extract_info(url, download=False), None
         except Exception as e:
-            return None
+            return None, str(e)[:300]
 
     def _download_single(self, url, item):
         if not yt_dlp:
             return
 
+        item.format = self.format
+
         opts = {
-            "format": "bestaudio/best",
             "outtmpl": os.path.join(self.output_dir, "%(title)s.%(ext)s"),
             "quiet": True,
             "no_warnings": True,
             "progress_hooks": [lambda d: self._progress_hook(d, item)],
-            "postprocessors": [{
+            "retries": 10,
+            "fragment_retries": 10,
+            "continuedl": True,
+            "concurrent_fragment_downloads": 4,
+        }
+
+        if self.cookies_from_browser:
+            opts["cookiesfrombrowser"] = (self.cookies_from_browser,)
+
+        if self.format == "mp4":
+            opts["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best"
+            opts["merge_output_format"] = "mp4"
+        else:
+            opts["format"] = "bestaudio/best"
+            opts["postprocessors"] = [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
                 "preferredquality": self.quality,
-            }],
-        }
+            }]
 
         if self.ffmpeg_dir:
             opts["ffmpeg_location"] = self.ffmpeg_dir
