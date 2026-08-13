@@ -7,6 +7,7 @@ A desktop application for downloading YouTube videos and playlists as MP3 audio 
 - Download single YouTube videos or full playlists as **MP3** or **MP4**
 - Dark-themed desktop UI (PyQt6)
 - Selectable MP3 quality (128, 192, 256, 320 kbps)
+- **Rename files before downloading** — click the ✎ on a row to set a custom file name (great for videos that share the same title)
 - Handles videos up to 2 hours (and longer) with resumable, retry-safe downloads
 - Cookie-based auth from your browser to bypass YouTube bot checks
 - Drag-and-drop URL support
@@ -45,18 +46,20 @@ Or double-click `run.bat` on Windows.
 
 3. **Select format & quality** — choose **MP3 (Audio)** or **MP4 (Video)**, and MP3 bitrate: 128, 192, 256, or 320 kbps
 
-4. **Choose output folder** — click **Browse...** to change where files are saved (defaults to `~/Music/YTMP3 Downloads`)
+4. **Rename (optional)** — click the ✎ button on any row to set a custom file name before it downloads. The name is shown under the row ("Will be saved as: ...")
 
-5. **Download All** — starts processing the queue. Each track shows:
+5. **Choose output folder** — click **Browse...** to change where files are saved (defaults to `~/Music/YTMP3 Downloads`)
+
+6. **Download All** — starts processing the queue. Each track shows:
    - Download progress (%)
    - Conversion status ("Converting to MP3/MP4...")
    - Green highlight on completion, red on error
 
-6. **Stop** — pauses the current queue (resume with **Download All**)
+7. **Stop** — pauses the current queue (resume with **Download All**)
 
-7. **Cookies** — if YouTube says "Sign in to confirm you're not a bot", pick the browser you're signed into YouTube with (Chrome/Edge/Firefox, etc.) from the **Cookies** dropdown. Close the browser first so the app can read its cookie database.
+8. **Cookies** — if YouTube says "Sign in to confirm you're not a bot", pick the browser you're signed into YouTube with (Chrome/Edge/Firefox, etc.) from the **Cookies** dropdown. Close the browser first so the app can read its cookie database.
 
-8. **FFmpeg** — if missing, click the "FFmpeg: not found" label at the top to auto-download it
+9. **FFmpeg** — if missing, click the "FFmpeg: not found" label at the top to auto-download it
 
 ## Project Structure
 

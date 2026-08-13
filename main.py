@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLineEdit, QListWidget, QListWidgetItem, QLabel,
     QComboBox, QFileDialog, QProgressBar, QMessageBox, QSplitter,
-    QFrame, QMenu, QCheckBox, QSlider, QStyle, QStyleFactory,
+    QFrame, QMenu, QCheckBox, QSlider, QStyle, QStyleFactory, QInputDialog,
 )
 from PyQt6.QtCore import (
     Qt, QThread, QUrl, QTimer, pyqtSignal, pyqtSlot, QObject,
@@ -202,6 +202,7 @@ class DownloadListWidget(QWidget):
 class DownloadRow(QFrame):
     def __init__(self, item: DownloadItem):
         super().__init__()
+        self._item = item
         self.setFixedHeight(56)
         self.setStyleSheet("""
             DownloadRow {
@@ -237,6 +238,38 @@ class DownloadRow(QFrame):
         layout.addWidget(self._progress)
         layout.addSpacing(4)
 
+        self._rename_btn = QPushButton("✎")
+        self._rename_btn.setFixedSize(26, 26)
+        self._rename_btn.setToolTip("Rename file before downloading")
+        self._rename_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                border: none;
+                color: #888888;
+                font-size: 14px;
+                padding: 0;
+            }
+            QPushButton:hover { color: #4a9eff; }
+        """)
+        self._rename_btn.clicked.connect(self._on_rename)
+        layout.addWidget(self._rename_btn)
+
+    def _on_rename(self):
+        current = self._item.custom_filename or self._item.title or ""
+        name, ok = QInputDialog.getText(self, "Rename Download", "File name (no extension):", text=current)
+        if ok and name.strip():
+            self._item.custom_filename = self._clean_filename(name.strip())
+            self._title_label.setText(self._item.custom_filename)
+            self._status_label.setText(f"Will be saved as: {self._item.custom_filename}")
+
+    @staticmethod
+    def _clean_filename(name):
+        cleaned = re.sub(r'[<>:"/\\|?*]', "_", name).strip().rstrip(". ")
+        base, ext = os.path.splitext(cleaned)
+        if ext.lower() in (".mp3", ".mp4", ".m4a", ".webm", ".mkv"):
+            cleaned = base
+        return cleaned or "download"
+
     def _status_text(self, item: DownloadItem):
         status_map = {
             "pending": "Waiting...",
@@ -249,7 +282,8 @@ class DownloadRow(QFrame):
         return status_map.get(item.status, item.status)
 
     def update_from(self, item: DownloadItem):
-        self._title_label.setText(item.title or "Unknown")
+        label = self._item.custom_filename or item.title or "Unknown"
+        self._title_label.setText(label)
         self._status_label.setText(self._status_text(item))
         self._progress.setValue(int(item.progress))
         self._progress.setVisible(item.status in ("downloading", "converting"))

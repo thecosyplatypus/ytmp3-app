@@ -20,6 +20,7 @@ class DownloadItem:
         self.error = ""
         self.filepath = ""
         self.format = "mp3"
+        self.custom_filename = ""
 
 
 class DownloadSignals(QObject):
@@ -185,8 +186,13 @@ class DownloadWorker(QObject):
 
         item.format = self.format
 
+        if item.custom_filename:
+            outtmpl = os.path.join(self.output_dir, item.custom_filename + ".%(ext)s")
+        else:
+            outtmpl = os.path.join(self.output_dir, "%(title)s.%(ext)s")
+
         opts = {
-            "outtmpl": os.path.join(self.output_dir, "%(title)s.%(ext)s"),
+            "outtmpl": outtmpl,
             "quiet": True,
             "no_warnings": True,
             "progress_hooks": [lambda d: self._progress_hook(d, item)],
