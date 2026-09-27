@@ -11,11 +11,19 @@ FFMPEG_URLS = [
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
 ]
 
+def app_dir():
+    """Folder that holds the app: next to the .exe when frozen, else next to the sources."""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(__file__))
+
 def get_ffmpeg_dir():
     if os.path.isdir(FFMPEG_DIR) and os.path.isfile(os.path.join(FFMPEG_DIR, "ffmpeg.exe")):
         return FFMPEG_DIR
-    if os.path.isfile("ffmpeg.exe") and os.path.isfile("ffprobe.exe"):
-        return os.path.abspath(".")
+    local = app_dir()
+    for candidate in (local, os.path.abspath(".")):
+        if os.path.isfile(os.path.join(candidate, "ffmpeg.exe")):
+            return candidate
     for p in os.environ.get("PATH", "").split(os.pathsep):
         if os.path.isfile(os.path.join(p, "ffmpeg.exe")):
             return p

@@ -16,25 +16,45 @@ A desktop application for downloading YouTube videos and playlists as MP3 audio 
 - Configurable output directory
 - FFmpeg auto-install if missing
 
-## Requirements
+## Installation (no Python needed)
 
-- Python 3.8+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (auto-installed below)
-- [PyQt6](https://pypi.org/project/PyQt6/) (auto-installed below)
-- FFmpeg (auto-downloaded from within the app, or install manually)
+1. Go to the **Releases** page of this repo
+2. Download **`YTMP3.exe`**
+3. Double-click it
 
-## Installation
+That's it — the .exe bundles Python, PyQt6 and yt-dlp, so it runs on any 64-bit Windows machine.
+
+> Windows SmartScreen may show "Windows protected your PC" because the app isn't
+> code-signed. Click **More info** → **Run anyway**.
+
+Your first download will also pull FFmpeg automatically (about 90 MB, saved to
+`%USERPROFILE%\.ytmp3-app\ffmpeg`).
+
+## Running from source (developers)
 
 ```bash
-# 1. Install Python dependencies
-pip install yt-dlp PyQt6 mutagen
-
-# 2. Clone or download this repo, then run:
+git clone https://github.com/thecosyplatypus/ytmp3-app.git
 cd ytmp3-app
-py main.py
+pip install yt-dlp PyQt6
+python main.py
 ```
 
-Or double-click `run.bat` on Windows.
+`run.bat` works too: it launches `YTMP3.exe` if you've built it, otherwise it finds
+your Python (via `py`, `python`, or `python3`), installs any missing dependencies
+and starts from source.
+
+## Building the .exe yourself
+
+```bash
+build.bat
+```
+
+Output goes to `dist\YTMP3.exe` (~55 MB, single file, no installer needed).
+
+Every push to `master` is also built by GitHub Actions (`.github/workflows/build.yml`).
+Tag a version (`git tag v1.0.0 && git push --tags`) and the exe is attached to the
+GitHub Release automatically — that's how the Releases page gets its download.
+
 
 ## Usage
 
@@ -68,7 +88,9 @@ ytmp3-app/
 ├── main.py           # Application entry point & UI
 ├── worker.py         # Download queue & yt-dlp integration
 ├── ffmpeg_helper.py  # FFmpeg detection & download
-├── run.bat           # Windows launcher
-├── config.json       # Saved settings (auto-generated)
+├── build.bat         # Builds the standalone YTMP3.exe (PyInstaller)
+├── run.bat           # Launcher: runs YTMP3.exe if built, else Python
+├── .github/workflows/build.yml  # CI that builds the exe + attaches to releases
+├── config.json       # Saved settings (auto-generated, next to the exe)
 └── README.md
 ```

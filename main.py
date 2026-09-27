@@ -18,9 +18,10 @@ from PyQt6.QtGui import (
 from PyQt6 import QtGui
 
 from worker import DownloadWorker, DownloadItem
-from ffmpeg_helper import is_ffmpeg_available, download_ffmpeg, get_ffmpeg_dir, get_ffmpeg_path, FFMPEG_DIR
+from ffmpeg_helper import (is_ffmpeg_available, download_ffmpeg, get_ffmpeg_dir,
+                           get_ffmpeg_path, FFMPEG_DIR, app_dir)
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+CONFIG_FILE = os.path.join(app_dir(), "config.json")
 
 def load_config():
     default = {
