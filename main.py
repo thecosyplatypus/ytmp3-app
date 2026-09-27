@@ -47,6 +47,10 @@ def save_config(cfg):
         pass
 
 
+def _is_url(text):
+    return bool(re.match(r'https?://\S+', (text or "").strip()))
+
+
 DARK_STYLESHEET = """
 QMainWindow, QWidget {
     background-color: #1e1e1e;
@@ -361,7 +365,7 @@ class MainWindow(QMainWindow):
         url_layout.setSpacing(8)
 
         self._url_input = QLineEdit()
-        self._url_input.setPlaceholderText("Paste YouTube URL or playlist link here...")
+        self._url_input.setPlaceholderText("Paste a video / episode / playlist link (YouTube, AniKuro, ...)...")
         self._url_input.returnPressed.connect(self._on_add_url)
 
         self._add_btn = QPushButton("Add")
@@ -519,13 +523,13 @@ class MainWindow(QMainWindow):
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
                 link = url.toString()
-                if "youtube.com" in link or "youtu.be" in link or "youtube" in link:
+                if _is_url(link):
                     self._add_url(link)
         elif event.mimeData().hasText():
             text = event.mimeData().text()
             for line in text.strip().splitlines():
                 line = line.strip()
-                if "youtube.com" in line or "youtu.be" in line or "youtube" in line:
+                if _is_url(line):
                     self._add_url(line)
 
     def _on_add_url(self):
@@ -533,12 +537,17 @@ class MainWindow(QMainWindow):
         if not text:
             return
 
-        urls = re.findall(r'(https?://(?:www\.)?(?:youtube\.com|youtu\.be|m\.youtube\.com)\S+)', text)
+        urls = re.findall(r'https?://\S+', text)
         if not urls:
-            urls = [text]
+            QMessageBox.warning(self, "No link found",
+                "That doesn't look like a link.\n\n"
+                "Paste a full URL, e.g.\n"
+                "  https://www.youtube.com/watch?v=...\n"
+                "  https://anikuro.to/watch/16498:1")
+            return
 
         for url in urls:
-            self._add_url(url)
+            self._add_url(url.rstrip('.,;)\'"'))
 
         self._url_input.clear()
 

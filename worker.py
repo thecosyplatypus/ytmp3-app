@@ -10,6 +10,42 @@ try:
 except ImportError:
     yt_dlp = None
 
+try:
+    from anikuro import AniKuroIE
+except ImportError:
+    AniKuroIE = None
+
+YOUTUBE_HOSTS = ("youtube.com", "youtu.be", "youtube-nocookie.com")
+
+
+def is_youtube(url):
+    """Browser cookies are only ever needed for YouTube's bot check."""
+    url = (url or "").lower()
+    return any(host in url for host in YOUTUBE_HOSTS)
+
+
+def build_ydl(opts):
+    """Create a YoutubeDL instance with the bundled site extractors registered."""
+    ydl = yt_dlp.YoutubeDL(opts)
+    if AniKuroIE is None:
+        return ydl
+    try:
+        # Register an instance (not the class) so YoutubeDL can hand it back out
+        ydl.add_info_extractor(AniKuroIE(ydl))
+        # yt-dlp appends custom extractors after its catch-all Generic one, which
+        # would always claim the URL first, so move ours back to the front.
+        ies = ydl._ies
+        key = next((k for k, v in ies.items() if isinstance(v, AniKuroIE)), None)
+        generic = next((k for k, v in ies.items() if getattr(v, '__name__', '') == 'GenericIE'), None)
+        if key and generic:
+            reordered = {key: ies.pop(key)}
+            reordered.update(ies)
+            ies.clear()
+            ies.update(reordered)
+    except Exception:
+        pass
+    return ydl
+
 
 class DownloadItem:
     def __init__(self, url, title="", status="pending", progress=0.0):
@@ -21,6 +57,7 @@ class DownloadItem:
         self.filepath = ""
         self.format = "mp3"
         self.custom_filename = ""
+        self.resolved = False
 
 
 class DownloadSignals(QObject):
@@ -100,13 +137,20 @@ class DownloadWorker(QObject):
             if not self._running:
                 break
 
+            pre_resolved = False
             with self._lock:
                 item = self._items.get(url)
                 if item:
                     item.status = "analyzing"
+                    # playlist/series children already know their title, so there is
+                    # no point extracting every entry twice before downloading it
+                    pre_resolved = item.resolved
 
-            self.signals.status_message.emit(f"Analyzing: {url[:80]}...")
-            info, analyze_error = self._analyze_url(url)
+            if pre_resolved:
+                info, analyze_error = {"title": item.title}, None
+            else:
+                self.signals.status_message.emit(f"Analyzing: {url[:80]}...")
+                info, analyze_error = self._analyze_url(url)
 
             if not info:
                 with self._lock:
@@ -129,6 +173,7 @@ class DownloadWorker(QObject):
                     if not vid_url:
                         continue
                     child = DownloadItem(vid_url, title=entry.get("title", "Unknown"), status="pending")
+                    child.resolved = True
                     playlist_items.append(child)
 
                 if playlist_items:
@@ -172,10 +217,17 @@ class DownloadWorker(QObject):
                 "no_warnings": True,
                 "extract_flat": "in_playlist",
                 "skip_download": True,
+                # keep a bad response from stalling the queue for minutes:
+                # the AniKuro extractor does its own short retries
+                "socket_timeout": 20,
+                "extractor_retries": 1,
+                "retries": 1,
+                # the queue only needs titles, so skip HLS manifest lookups
+                "extractor_args": {"anikuro": {"metadata_only": ["1"]}},
             }
-            if self.cookies_from_browser:
+            if self.cookies_from_browser and is_youtube(url):
                 opts["cookiesfrombrowser"] = (self.cookies_from_browser,)
-            with yt_dlp.YoutubeDL(opts) as ydl:
+            with build_ydl(opts) as ydl:
                 return ydl.extract_info(url, download=False), None
         except Exception as e:
             return None, str(e)[:300]
@@ -200,9 +252,10 @@ class DownloadWorker(QObject):
             "fragment_retries": 10,
             "continuedl": True,
             "concurrent_fragment_downloads": 4,
+            "socket_timeout": 30,
         }
 
-        if self.cookies_from_browser:
+        if self.cookies_from_browser and is_youtube(url):
             opts["cookiesfrombrowser"] = (self.cookies_from_browser,)
 
         if self.format == "mp4":
@@ -220,7 +273,7 @@ class DownloadWorker(QObject):
             opts["ffmpeg_location"] = self.ffmpeg_dir
 
         try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
+            with build_ydl(opts) as ydl:
                 ydl.download([url])
             item.status = "done"
             item.progress = 100.0

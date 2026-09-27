@@ -1,10 +1,12 @@
 # YTMP3 Downloader
 
-A desktop application for downloading YouTube videos and playlists as MP3 audio or MP4 video. Built with Python, PyQt6, and yt-dlp.
+A desktop application for downloading videos and playlists as MP3 audio or MP4 video. Built with Python, PyQt6, and yt-dlp.
 
 ## Features
 
-- Download single YouTube videos or full playlists as **MP3** or **MP4**
+- Download videos or full playlists/series as **MP3** or **MP4**
+- **YouTube** support via yt-dlp, plus a built-in **AniKuro** extractor (anikuro.to / .ru / .site) for anime episodes
+- Any other site yt-dlp supports (~1750 of them) — just paste the link
 - Dark-themed desktop UI (PyQt6)
 - Selectable MP3 quality (128, 192, 256, 320 kbps)
 - **Rename files before downloading** — click the ✎ on a row to set a custom file name (great for videos that share the same title)
@@ -60,9 +62,13 @@ GitHub Release automatically — that's how the Releases page gets its download.
 
 1. **Launch the app** — a dark-themed window opens
 
-2. **Paste a URL** — paste a YouTube video or playlist link into the input field, then click **Add**
-   - Supports `youtube.com`, `youtu.be`, `music.youtube.com`
-   - Playlists are auto-detected and expanded
+2. **Paste a URL** — paste a video, episode or playlist link into the input field, then click **Add**
+   - YouTube: `youtube.com`, `youtu.be`, `music.youtube.com` — playlists auto-detected and expanded
+   - AniKuro: `anikuro.to/watch/16498` (whole series) or `anikuro.to/watch/16498:1` (one episode); add `?variant=dub` for the dub
+     - Episodes are labelled in about a second and a series expands to every episode in about a second
+     - Without a variant in the link, the subtitled stream is used (add `?variant=dub` for the other audio)
+     - **Not every episode can be downloaded.** AniKuro lists some episodes that have no real video published yet - the site only offers a placeholder image stream with no audio, so there is nothing to extract. Those links are flagged straight away (in about two seconds) instead of downloading hundreds of megabytes first, so a red row just means that episode is not available *at that moment* - try again later, another episode, or another site
+   - Anything else yt-dlp supports — the link is passed straight through
 
 3. **Select format & quality** — choose **MP3 (Audio)** or **MP4 (Video)**, and MP3 bitrate: 128, 192, 256, or 320 kbps
 
@@ -77,7 +83,7 @@ GitHub Release automatically — that's how the Releases page gets its download.
 
 7. **Stop** — pauses the current queue (resume with **Download All**)
 
-8. **Cookies** — if YouTube says "Sign in to confirm you're not a bot", pick the browser you're signed into YouTube with (Chrome/Edge/Firefox, etc.) from the **Cookies** dropdown. Close the browser first so the app can read its cookie database.
+8. **Cookies** — if YouTube says "Sign in to confirm you're not a bot", pick the browser you're signed into YouTube with (Chrome/Edge/Firefox, etc.) from the **Cookies** dropdown. Close the browser first so the app can read its cookie database. This setting is only applied to YouTube links, so it can't slow down other sites.
 
 9. **FFmpeg** — if missing, click the "FFmpeg: not found" label at the top to auto-download it
 
@@ -87,6 +93,7 @@ GitHub Release automatically — that's how the Releases page gets its download.
 ytmp3-app/
 ├── main.py           # Application entry point & UI
 ├── worker.py         # Download queue & yt-dlp integration
+├── anikuro.py        # yt-dlp extractor for anikuro.to / .ru / .site
 ├── ffmpeg_helper.py  # FFmpeg detection & download
 ├── build.bat         # Builds the standalone YTMP3.exe (PyInstaller)
 ├── run.bat           # Launcher: runs YTMP3.exe if built, else Python
